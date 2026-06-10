@@ -20,3 +20,6 @@ firmware-fleet-platformio/.pio/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local docs (never commit)
+VPS.md
