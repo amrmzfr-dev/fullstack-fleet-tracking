@@ -1,47 +1,69 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: fleet
-      POSTGRES_PASSWORD: fleet
-      POSTGRES_DB: fleet
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-fleet_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-fleet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
 
   backend:
-    build:
-      context: ./backend-fleet-dotnet
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=fleet;Username=fleet;Password=fleet
-      ConnectionStrings__Redis: redis:6379
-      Jwt__Secret: dev-jwt-secret-change-me
-      Admin__Email: admin@fleet.local
-      Admin__PasswordHash: $2a$11$examplehashreplacebeforeuse
-      Tracking__OverspeedThreshold: 120
-      Tracking__AlertCooldownSeconds: 60
-    ports:
-      - "8080:8080"
+    image: ghcr.io/amrmzfr-dev/fullstack-fleet-tracking-backend:dev
+    restart: unless-stopped
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env.dev
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+    ports:
+      - "8083:8080"
+    networks:
+      - default
 
   frontend:
-    build:
-      context: ./frontend-fleet-react
-    environment:
-      VITE_API_URL: http://localhost:8080
+    image: ghcr.io/amrmzfr-dev/fullstack-fleet-tracking-frontend:dev
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "3003:80"
     depends_on:
       - backend
+    networks:
+      - default
 
 volumes:
-  postgres_data:
+  db_data:
+  redisdata:
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16
+          gateway: 172.33.0.1
