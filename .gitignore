@@ -1,0 +1,22 @@
+# .NET
+backend-fleet-dotnet/bin/
+backend-fleet-dotnet/obj/
+backend-fleet-dotnet/*.user
+backend-fleet-dotnet/.vs/
+
+# Frontend
+frontend-fleet-react/node_modules/
+frontend-fleet-react/dist/
+frontend-fleet-react/tsconfig.app.tsbuildinfo
+
+# PlatformIO
+firmware-fleet-platformio/.pio/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
