@@ -74,7 +74,7 @@ jobs:
             "$COMPOSE_FILE" "${VPS_USER}@${VPS_HOST}:${APP_DIR}/${COMPOSE_FILE}"
           docker save "$SRC_IMAGE" | gzip -1 | "${SSH_BASE[@]}" "${VPS_USER}@${VPS_HOST}" 'gunzip -c | docker load'
           "${SSH_BASE[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "docker tag '$SRC_IMAGE' '$DEPLOY_IMAGE' && cd '$APP_DIR' && docker compose -f '$COMPOSE_FILE' stop frontend || true && docker compose -f '$COMPOSE_FILE' rm -f frontend && docker compose -f '$COMPOSE_FILE' up -d --no-deps frontend"
+            "docker tag '$SRC_IMAGE' '$DEPLOY_IMAGE' && cd '$APP_DIR' && docker compose --env-file .env.dev -f '$COMPOSE_FILE' stop frontend || true && docker compose --env-file .env.dev -f '$COMPOSE_FILE' rm -f frontend && docker compose --env-file .env.dev -f '$COMPOSE_FILE' up -d --no-deps frontend"
 
   deploy-prod:
     if: github.ref == 'refs/heads/main'
@@ -131,6 +131,6 @@ jobs:
             "$COMPOSE_FILE" "${VPS_USER}@${VPS_HOST}:${APP_DIR}/${COMPOSE_FILE}"
           docker save "$SRC_IMAGE" | gzip -1 | "${SSH_BASE[@]}" "${VPS_USER}@${VPS_HOST}" 'gunzip -c | docker load'
           "${SSH_BASE[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "docker tag '$SRC_IMAGE' '$DEPLOY_IMAGE' && cd '$APP_DIR' && docker compose -f '$COMPOSE_FILE' stop frontend || true && docker compose -f '$COMPOSE_FILE' rm -f frontend && docker compose -f '$COMPOSE_FILE' up -d --no-deps frontend"
+            "docker tag '$SRC_IMAGE' '$DEPLOY_IMAGE' && cd '$APP_DIR' && docker compose --env-file .env.prod -f '$COMPOSE_FILE' stop frontend || true && docker compose --env-file .env.prod -f '$COMPOSE_FILE' rm -f frontend && docker compose --env-file .env.prod -f '$COMPOSE_FILE' up -d --no-deps frontend"
           "${SSH_BASE[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "cd '$APP_DIR' && CID=\$(docker compose -f '$COMPOSE_FILE' ps -q frontend) && docker inspect --format 'frontend image={{.Config.Image}} id={{.Image}}' \"\$CID\""
+            "cd '$APP_DIR' && CID=\$(docker compose --env-file .env.prod -f '$COMPOSE_FILE' ps -q frontend) && docker inspect --format 'frontend image={{.Config.Image}} id={{.Image}}' \"\$CID\""
