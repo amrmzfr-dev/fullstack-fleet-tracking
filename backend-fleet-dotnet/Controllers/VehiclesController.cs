@@ -1,12 +1,10 @@
 using BackendFleetDotnet.DTOs;
 using BackendFleetDotnet.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendFleetDotnet.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/v1/vehicles")]
 public class VehiclesController(VehicleService vehicleService) : ControllerBase
 {

@@ -1,11 +1,9 @@
 using BackendFleetDotnet.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendFleetDotnet.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/v1/alerts")]
 public class AlertsController(AlertService alertService) : ControllerBase
 {
