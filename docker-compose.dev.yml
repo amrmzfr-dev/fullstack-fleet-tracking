@@ -41,6 +41,7 @@ services:
     env_file: .env.dev
     environment:
       ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Development
     ports:
       - "8083:8080"
     networks:

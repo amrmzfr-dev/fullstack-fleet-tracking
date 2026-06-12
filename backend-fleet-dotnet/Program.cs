@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using BackendFleetDotnet.Data;
 using BackendFleetDotnet.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
@@ -49,9 +50,14 @@ builder.Services
     });
 
 builder.Services.AddAuthorizationBuilder()
-    .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build());
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IAuthorizationHandler, DevBypassAuthorizationHandler>();
+}
 
 var corsOrigins = builder.Configuration["CorsOrigins"]?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? [];
 
@@ -96,3 +102,14 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();
+
+// Allows all [Authorize] requirements to pass in Development without a token.
+class DevBypassAuthorizationHandler : IAuthorizationHandler
+{
+    public Task HandleAsync(AuthorizationHandlerContext context)
+    {
+        foreach (var requirement in context.PendingRequirements.ToList())
+            context.Succeed(requirement);
+        return Task.CompletedTask;
+    }
+}
