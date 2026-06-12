@@ -161,12 +161,17 @@ bool httpPost(const String &payload) {
     return false;
   }
 
+  if (!sendAT("AT+HTTPSSL=1", "OK", 5000)) {
+    sendAT("AT+HTTPTERM", "OK", 3000);
+    return false;
+  }
+
   if (!sendAT("AT+HTTPPARA=\"CID\",1", "OK", 5000)) {
     sendAT("AT+HTTPTERM", "OK", 3000);
     return false;
   }
 
-  String urlCmd = String("AT+HTTPPARA=\"URL\",\"http://") + BACKEND_HOST + "/api/v1/track\"";
+  String urlCmd = String("AT+HTTPPARA=\"URL\",\"https://") + BACKEND_HOST + "/api/v1/track\"";
   if (!sendAT(urlCmd.c_str(), "OK", 5000)) {
     sendAT("AT+HTTPTERM", "OK", 3000);
     return false;

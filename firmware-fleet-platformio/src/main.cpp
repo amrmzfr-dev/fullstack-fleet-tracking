@@ -57,6 +57,10 @@ void loop() {
       motionState = STATE_PARKED;
       httpPost(buildPayload(0.0f));
       lastSendMs = now;
+    } else if (motionState == STATE_PARKED && now - lastSendMs >= PARKED_HEARTBEAT_MS) {
+      if (httpPost(buildPayload(0.0f))) {
+        lastSendMs = now;
+      }
     }
   }
 

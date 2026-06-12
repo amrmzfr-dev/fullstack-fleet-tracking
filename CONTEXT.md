@@ -53,7 +53,7 @@ fullstack-fleet-tracking/
 _No active task._
 
 ## Active Branch / PR
-—
+develop
 
 ---
 
@@ -96,6 +96,8 @@ _No plan._
 - 2026-06-10: Redis for live position cache (avoid hammering DB on every dashboard poll cycle)
 - 2026-06-10: Backend switched from Go+Gin to .NET 8 ASP.NET Core (Controllers) — Go dropped from stack in favour of .NET
 - 2026-06-10: Backend targets net10.0 on dev machine (.NET 10 SDK); API surface matches .NET 8 plan
+- 2026-06-11: Parked heartbeat every 60s in firmware — keeps dashboard status as Parked instead of NoSignal
+- 2026-06-11: Frontend auth guard bypassed for dev — dashboard loads without login; backend auth unchanged
 
 ## Known Issues
 —
