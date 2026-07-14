@@ -50,7 +50,7 @@ fullstack-fleet-tracking/
 ---
 
 ## Current Task
-End-to-end tracking verified: device GPS fix → HTTPS POST to dev backend → visible on fleet-dev dashboard.
+End-to-end tracking LIVE: device posts positions to dev backend over 4G (HTTPACTION 200), visible on fleet-dev dashboard.
 
 ## Active Branch / PR
 develop
@@ -90,8 +90,9 @@ Firmware → dev backend wiring (done this session, pending final flash):
 - `buildPayload()` in `src/gps.cpp` sends camelCase keys (`deviceId`, `apiKey`, `speedKmh`, …) — backend uses ASP.NET Core camelCase JSON policy and silently drops snake_case fields.
 - Dev DB `Vehicles` row Id=1: `DeviceId='vehicle-001'`, `ApiKeyHash` = bcrypt of key in local secrets.h (set via pgcrypto `crypt(..., gen_salt('bf', 11))`).
 - GPS logging: status every 2s (`printGPSFix()` with fix / `printGPSDiagnostics()` without, incl. zero-bytes wiring warning). `GPS_RAW_ECHO=0` now.
-- PENDING: reflash device with secrets.h build (needs BOOT held — auto-reset unreliable on this board), then confirm `+HTTPACTION: 1,200` in serial log and marker updates on https://fleet-dev.mesraekuiti.biz.
-- Flash: `pio run -d firmware-fleet-platformio -t upload --upload-port COM6`; monitor via 115200 baud on COM6.
+- DONE: device confirmed posting `+HTTPACTION: 1,200` to dev backend; positions in dev DB.
+- A7670C quirks fixed in modem.cpp: no `AT+HTTPSSL` (TLS implied by https:// URL), no HTTPPARA `"CID"`, SNI must be enabled via `AT+CSSLCFG="enableSNI",0,1` (Apache vhosts answer 421 without it), `AT+HTTPINIT` errors if stale session open → HTTPTERM+retry, PWRKEY pulse toggles running modem OFF → probe with AT before pulsing.
+- Flash: `pio run -d firmware-fleet-platformio -t upload --upload-port COM6`; auto-reset into bootloader unreliable — usually needs BOOT held during "Connecting...". Monitor 115200 on COM6.
 
 ---
 
@@ -103,4 +104,5 @@ Firmware → dev backend wiring (done this session, pending final flash):
 - 2026-07-15: vehicle-001 registered in dev DB (pgcrypto bcrypt hash); dev key lives only in local secrets.h and VPS DB
 
 ## Known Issues
-—
+- 2026-07-15: GPS date one day behind (time-of-day correct) — device timestamps show previous UTC date. Consider backend stamping RecordedAt with server receive time instead of trusting device clock.
+- 2026-07-15: Board spontaneously reboots occasionally (POWERON_RESET) — suspected USB power brownout from A7670C current bursts. Needs dedicated 5V ≥2A supply or bulk capacitor across modem VCC/GND for vehicle install.

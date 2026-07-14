@@ -93,6 +93,16 @@ bool sendAT(const char *cmd, const char *expectedResponse, unsigned long timeout
 bool powerOnModem() {
   pinMode(MODEM_PWR_PIN, OUTPUT);
   pinMode(MODEM_STS_PIN, INPUT);
+  digitalWrite(MODEM_PWR_PIN, LOW);
+
+  // PWRKEY toggles power state, so a pulse would turn an already-running
+  // modem OFF (e.g. after an ESP32-only reset). Probe with AT first.
+  for (int attempt = 0; attempt < 3; ++attempt) {
+    if (sendAT("AT", "OK", 1000)) {
+      Serial.println("Modem already on, skipping PWRKEY pulse");
+      return true;
+    }
+  }
 
   digitalWrite(MODEM_PWR_PIN, HIGH);
   delay(1500);
@@ -158,18 +168,18 @@ bool initModemNetwork() {
 
 bool httpPost(const String &payload) {
   if (!sendAT("AT+HTTPINIT", "OK", 5000)) {
-    return false;
+    // HTTPINIT errors if a stale session is already open (e.g. previous
+    // run died mid-post while the modem stayed powered) — clear and retry
+    sendAT("AT+HTTPTERM", "OK", 3000);
+    if (!sendAT("AT+HTTPINIT", "OK", 5000)) {
+      return false;
+    }
   }
 
-  if (!sendAT("AT+HTTPSSL=1", "OK", 5000)) {
-    sendAT("AT+HTTPTERM", "OK", 3000);
-    return false;
-  }
-
-  if (!sendAT("AT+HTTPPARA=\"CID\",1", "OK", 5000)) {
-    sendAT("AT+HTTPTERM", "OK", 3000);
-    return false;
-  }
+  // A7670C has no AT+HTTPSSL or HTTPPARA "CID" — TLS is implied by the
+  // https:// URL scheme and the PDP context is managed by the modem.
+  // SNI must be enabled or Apache (multiple HTTPS vhosts) answers 421.
+  sendAT("AT+CSSLCFG=\"enableSNI\",0,1", "OK", 5000);
 
   String urlCmd = String("AT+HTTPPARA=\"URL\",\"https://") + BACKEND_HOST + "/api/v1/track\"";
   if (!sendAT(urlCmd.c_str(), "OK", 5000)) {
