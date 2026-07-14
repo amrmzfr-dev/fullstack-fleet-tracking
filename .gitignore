@@ -11,6 +11,7 @@ frontend-fleet-react/tsconfig.app.tsbuildinfo
 
 # PlatformIO
 firmware-fleet-platformio/.pio/
+firmware-fleet-platformio/include/secrets.h
 
 # Env files
 .env

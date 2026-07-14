@@ -1,9 +1,9 @@
 #pragma once
 
+#include "secrets.h"  // API_KEY + BACKEND_HOST — gitignored, see secrets.h.example
+
 #define DEVICE_ID "vehicle-001"
-#define API_KEY "change-me-api-key"
 #define APN "xox"
-#define BACKEND_HOST "your-backend.example.com"
 
 #define SPEED_THRESHOLD_KMH 3.0f
 #define REPORT_INTERVAL_MS 5000UL
@@ -20,3 +20,7 @@
 #define MODEM_BOOT_TIMEOUT_MS 30000UL
 #define AT_RETRY_COUNT 20
 #define AT_RETRY_DELAY_MS 500UL
+
+// GPS debug — set GPS_RAW_ECHO to 0 to silence raw NMEA output
+#define GPS_RAW_ECHO 0
+#define GPS_DIAG_INTERVAL_MS 2000UL

@@ -9,12 +9,50 @@ TinyGPSPlus gpsParser;
 
 void initGPS() {
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+  Serial.print(F("GPS: UART started at 9600 baud (RX="));
+  Serial.print(GPS_RX_PIN);
+  Serial.print(F(", TX="));
+  Serial.print(GPS_TX_PIN);
+  Serial.println(F(")"));
 }
 
 void feedGPS() {
   while (gpsSerial.available()) {
-    gpsParser.encode(gpsSerial.read());
+    const char c = static_cast<char>(gpsSerial.read());
+    gpsParser.encode(c);
+#if GPS_RAW_ECHO
+    Serial.write(c);
+#endif
   }
+}
+
+void printGPSDiagnostics() {
+  Serial.println(F("--- GPS DIAG ---"));
+  if (gpsParser.charsProcessed() == 0) {
+    Serial.println(F("WARNING: no data from GPS module - check wiring/power"));
+  }
+  Serial.print(F("Chars processed : ")); Serial.println(gpsParser.charsProcessed());
+  Serial.print(F("Passed checksum : ")); Serial.println(gpsParser.passedChecksum());
+  Serial.print(F("Failed checksum : ")); Serial.println(gpsParser.failedChecksum());
+  Serial.print(F("Sentences w/fix : ")); Serial.println(gpsParser.sentencesWithFix());
+  Serial.print(F("Fix valid       : ")); Serial.println(gpsParser.location.isValid() ? "YES" : "NO");
+  Serial.print(F("Satellites      : "));
+  Serial.println(gpsParser.satellites.isValid() ? String(gpsParser.satellites.value()) : F("unknown"));
+  Serial.print(F("HDOP            : "));
+  Serial.println(gpsParser.hdop.isValid() ? String(gpsParser.hdop.hdop(), 2) : F("unknown"));
+  Serial.println(F("----------------"));
+}
+
+void printGPSFix() {
+  Serial.print(F("GPS: fix lat="));
+  Serial.print(gpsParser.location.lat(), 6);
+  Serial.print(F(" lng="));
+  Serial.print(gpsParser.location.lng(), 6);
+  Serial.print(F(" sats="));
+  Serial.print(gpsParser.satellites.isValid() ? static_cast<int>(gpsParser.satellites.value()) : 0);
+  Serial.print(F(" speed="));
+  Serial.print(getSpeedKmh(), 1);
+  Serial.println(F("km/h"));
 }
 
 bool hasValidFix() {
@@ -53,8 +91,8 @@ String buildPayload(float speedKmh) {
   snprintf(
       buffer,
       sizeof(buffer),
-      "{\"device_id\":\"%s\",\"api_key\":\"%s\",\"lat\":%.6f,\"lng\":%.6f,"
-      "\"speed_kmh\":%.1f,\"heading\":%.1f,\"satellites\":%d,\"hdop\":%.2f,"
+      "{\"deviceId\":\"%s\",\"apiKey\":\"%s\",\"lat\":%.6f,\"lng\":%.6f,"
+      "\"speedKmh\":%.1f,\"heading\":%.1f,\"satellites\":%d,\"hdop\":%.2f,"
       "\"timestamp\":\"%s\"}",
       DEVICE_ID,
       API_KEY,

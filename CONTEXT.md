@@ -50,7 +50,7 @@ fullstack-fleet-tracking/
 ---
 
 ## Current Task
-_No active task._
+End-to-end tracking verified: device GPS fix → HTTPS POST to dev backend → visible on fleet-dev dashboard.
 
 ## Active Branch / PR
 develop
@@ -85,19 +85,22 @@ Serial1 init: `Serial1.begin(9600, SERIAL_8N1, 27, 26)` — RX=27, TX=26
 
 ## Plan
 
-_No plan._
+Firmware → dev backend wiring (done this session, pending final flash):
+- `include/secrets.h` (gitignored) holds `API_KEY` + `BACKEND_HOST`; `secrets.h.example` is the committed template; `config.h` includes it.
+- `buildPayload()` in `src/gps.cpp` sends camelCase keys (`deviceId`, `apiKey`, `speedKmh`, …) — backend uses ASP.NET Core camelCase JSON policy and silently drops snake_case fields.
+- Dev DB `Vehicles` row Id=1: `DeviceId='vehicle-001'`, `ApiKeyHash` = bcrypt of key in local secrets.h (set via pgcrypto `crypt(..., gen_salt('bf', 11))`).
+- GPS logging: status every 2s (`printGPSFix()` with fix / `printGPSDiagnostics()` without, incl. zero-bytes wiring warning). `GPS_RAW_ECHO=0` now.
+- PENDING: reflash device with secrets.h build (needs BOOT held — auto-reset unreliable on this board), then confirm `+HTTPACTION: 1,200` in serial log and marker updates on https://fleet-dev.mesraekuiti.biz.
+- Flash: `pio run -d firmware-fleet-platformio -t upload --upload-port COM6`; monitor via 115200 baud on COM6.
 
 ---
 
 ## Decisions Log
-- 2026-06-10: Arduino C++ chosen for firmware (library ecosystem for A7670C/NEO-6M, lower barrier vs esp-hal Rust)
-- 2026-06-10: Raw AT commands for HTTP (no bloated GSM library; A7670C AT+HTTP commands are well documented)
-- 2026-06-10: Polling not websockets for live positions (REST-only constraint; 5s poll is acceptable for fleet tracking)
-- 2026-06-10: Redis for live position cache (avoid hammering DB on every dashboard poll cycle)
-- 2026-06-10: Backend switched from Go+Gin to .NET 8 ASP.NET Core (Controllers) — Go dropped from stack in favour of .NET
-- 2026-06-10: Backend targets net10.0 on dev machine (.NET 10 SDK); API surface matches .NET 8 plan
 - 2026-06-11: Parked heartbeat every 60s in firmware — keeps dashboard status as Parked instead of NoSignal
 - 2026-06-11: Frontend auth guard bypassed for dev — dashboard loads without login; backend auth unchanged
+- 2026-07-15: Firmware payload keys switched to camelCase — backend's ASP.NET camelCase JSON policy silently dropped snake_case fields (device_id → empty → 401)
+- 2026-07-15: Device secrets (API_KEY, BACKEND_HOST) moved to gitignored include/secrets.h; secrets.h.example committed as template
+- 2026-07-15: vehicle-001 registered in dev DB (pgcrypto bcrypt hash); dev key lives only in local secrets.h and VPS DB
 
 ## Known Issues
 —

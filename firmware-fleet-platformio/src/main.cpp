@@ -9,6 +9,7 @@ enum MotionState { STATE_PARKED, STATE_MOVING };
 MotionState motionState = STATE_PARKED;
 unsigned long lastSendMs = 0;
 unsigned long belowThresholdSinceMs = 0;
+unsigned long lastDiagMs = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -27,13 +28,23 @@ void setup() {
 void loop() {
   feedGPS();
 
+  const unsigned long now = millis();
+
+  if (now - lastDiagMs >= GPS_DIAG_INTERVAL_MS) {
+    if (hasValidFix()) {
+      printGPSFix();
+    } else {
+      printGPSDiagnostics();
+    }
+    lastDiagMs = now;
+  }
+
   if (!hasValidFix()) {
-    delay(100);
+    delay(50);
     return;
   }
 
   const float speedKmh = getSpeedKmh();
-  const unsigned long now = millis();
 
   if (speedKmh > SPEED_THRESHOLD_KMH) {
     belowThresholdSinceMs = 0;
