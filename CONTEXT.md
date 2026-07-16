@@ -50,7 +50,7 @@ fullstack-fleet-tracking/
 ---
 
 ## Current Task
-Implemented all 6 reliability fixes (HTTPACTION parse, fix-age+quality gate, parked anchor, no-fix heartbeat with NoGps status end-to-end, modem recovery); pushing develop → verify on dev → merge to main.
+All 6 reliability fixes shipped: verified on device (60s hasFix:false heartbeats, HTTPACTION 200 parsed correctly, dashboard shows NoGps) and deployed to BOTH dev and prod (commit f4e04d9). Remaining: field-test real-fix behavior (anchor + moving reports) outdoors.
 
 ## Active Branch / PR
 develop
