@@ -31,6 +31,7 @@ public class VehicleService(FleetDbContext dbContext, RedisCacheService cache)
                     Heading = live.Heading,
                     Satellites = live.Satellites,
                     Hdop = live.Hdop,
+                    HasFix = live.HasFix,
                     RecordedAt = live.RecordedAt
                 };
             }
@@ -205,6 +206,11 @@ public class VehicleService(FleetDbContext dbContext, RedisCacheService cache)
         if (age > TimeSpan.FromMinutes(10))
         {
             return VehicleStatus.NoSignal;
+        }
+
+        if (!position.HasFix)
+        {
+            return VehicleStatus.NoGps;
         }
 
         if (position.SpeedKmh > 0 && age <= TimeSpan.FromMinutes(2))

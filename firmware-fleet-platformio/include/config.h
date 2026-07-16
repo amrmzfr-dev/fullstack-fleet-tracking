@@ -10,6 +10,19 @@
 #define PARK_CONFIRM_MS 10000UL
 #define PARKED_HEARTBEAT_MS 60000UL
 
+// Fix quality gates — a fix is only trusted when fresh, with enough
+// satellites and low dilution; drift below these limits is GPS noise
+#define GPS_FIX_MAX_AGE_MS 5000UL
+#define GPS_MIN_SATELLITES 5
+#define GPS_MAX_HDOP 2.5f
+
+// While parked, coordinates are anchored; speed alone (GPS noise reads up
+// to ~11 km/h stationary) doesn't unpark — device must also leave this radius
+#define PARK_EXIT_DISTANCE_M 30.0f
+
+// Consecutive failed posts before re-running network init / modem power cycle
+#define MODEM_FAILURES_BEFORE_RECOVERY 3
+
 #define MODEM_PWR_PIN 4
 #define MODEM_STS_PIN 5
 #define MODEM_RX_PIN 16

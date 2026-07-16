@@ -30,7 +30,16 @@ bool waitForPrompt(const char *prompt, unsigned long timeoutMs) {
   return false;
 }
 
-bool waitForHttpAction(unsigned long timeoutMs) {
+// Sends AT+HTTPACTION=1 and waits for the complete URC line
+// "+HTTPACTION: <method>,<status>,<len>" in a single buffer. The previous
+// implementation waited for the "+HTTPACTION:" prefix in one read loop and
+// parsed the status in a second one — the prefix was already consumed, so
+// the parser always timed out and every successful POST counted as failed.
+int httpActionStatus(unsigned long timeoutMs) {
+  drainModem();
+  modemSerial.println("AT+HTTPACTION=1");
+  Serial.println(">> AT+HTTPACTION=1");
+
   String buffer;
   const unsigned long start = millis();
 
@@ -40,24 +49,22 @@ bool waitForHttpAction(unsigned long timeoutMs) {
       Serial.write(c);
       buffer += c;
 
-      if (buffer.indexOf("+HTTPACTION:") >= 0) {
-        const int comma1 = buffer.indexOf(',', buffer.indexOf("+HTTPACTION:"));
-        if (comma1 < 0) {
-          continue;
-        }
-
-        const int comma2 = buffer.indexOf(',', comma1 + 1);
-        if (comma2 < 0) {
-          continue;
-        }
-
-        const String statusCode = buffer.substring(comma1 + 1, comma2);
-        return statusCode.toInt() == 200;
+      const int tag = buffer.indexOf("+HTTPACTION:");
+      if (tag < 0 || buffer.indexOf('\n', tag) < 0) {
+        continue;
       }
+
+      const int comma1 = buffer.indexOf(',', tag);
+      const int comma2 = comma1 >= 0 ? buffer.indexOf(',', comma1 + 1) : -1;
+      if (comma1 < 0 || comma2 < 0) {
+        return -1;
+      }
+
+      return buffer.substring(comma1 + 1, comma2).toInt();
     }
   }
 
-  return false;
+  return -1;
 }
 }  // namespace
 
@@ -211,12 +218,29 @@ bool httpPost(const String &payload) {
     return false;
   }
 
-  if (!sendAT("AT+HTTPACTION=1", "+HTTPACTION:", 30000)) {
-    sendAT("AT+HTTPTERM", "OK", 3000);
-    return false;
+  const int status = httpActionStatus(30000);
+  sendAT("AT+HTTPTERM", "OK", 3000);
+
+  if (status != 200) {
+    Serial.print("HTTP POST failed, status=");
+    Serial.println(status);
+  }
+  return status == 200;
+}
+
+bool recoverModemNetwork() {
+  Serial.println("Modem recovery: re-running network init");
+  if (initModemNetwork()) {
+    return true;
   }
 
-  const bool success = waitForHttpAction(30000);
-  sendAT("AT+HTTPTERM", "OK", 3000);
-  return success;
+  // Registration/PDP unrecoverable over AT — power-cycle the modem.
+  // PWRKEY pulse toggles power state, so one pulse turns it off.
+  Serial.println("Modem recovery: power-cycling modem");
+  digitalWrite(MODEM_PWR_PIN, HIGH);
+  delay(1500);
+  digitalWrite(MODEM_PWR_PIN, LOW);
+  delay(5000);
+
+  return powerOnModem() && initModemNetwork();
 }

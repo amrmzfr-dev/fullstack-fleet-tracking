@@ -66,6 +66,12 @@ public class TrackingService(
             return (false, "invalid api key", StatusCodes.Status401Unauthorized);
         }
 
+        if (!dto.HasFix)
+        {
+            await UpdateNoFixHeartbeatAsync(vehicle.Id, dto);
+            return (true, null, StatusCodes.Status200OK);
+        }
+
         if (!DateTime.TryParse(dto.Timestamp, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var recordedAt))
         {
             return (false, "invalid timestamp", StatusCodes.Status400BadRequest);
@@ -104,6 +110,48 @@ public class TrackingService(
         await CheckOverspeedAsync(vehicle.Id, dto, recordedAt);
 
         return (true, null, StatusCodes.Status200OK);
+    }
+
+    // A no-fix heartbeat proves the device is alive but blind: refresh the
+    // live cache "last seen" (server-stamped — the device clock is untrusted
+    // without a fix) while keeping the last known coordinates, and store
+    // nothing in Positions so history stays clean.
+    private async Task UpdateNoFixHeartbeatAsync(int vehicleId, TrackRequestDto dto)
+    {
+        var lastKnown = await cache.GetLivePositionAsync(vehicleId);
+
+        if (lastKnown is null)
+        {
+            var dbPosition = await dbContext.Positions
+                .AsNoTracking()
+                .Where(p => p.VehicleId == vehicleId)
+                .OrderByDescending(p => p.RecordedAt)
+                .FirstOrDefaultAsync();
+
+            if (dbPosition is not null)
+            {
+                lastKnown = new LivePositionDto
+                {
+                    VehicleId = vehicleId,
+                    Lat = dbPosition.Lat,
+                    Lng = dbPosition.Lng,
+                    Heading = dbPosition.Heading
+                };
+            }
+        }
+
+        await cache.SetLivePositionAsync(new LivePositionDto
+        {
+            VehicleId = vehicleId,
+            Lat = lastKnown?.Lat ?? 0,
+            Lng = lastKnown?.Lng ?? 0,
+            SpeedKmh = 0,
+            Heading = lastKnown?.Heading ?? 0,
+            Satellites = dto.Satellites,
+            Hdop = dto.Hdop,
+            HasFix = false,
+            RecordedAt = DateTime.UtcNow
+        });
     }
 
     private async Task ManageTripAsync(int vehicleId, TrackRequestDto dto, DateTime recordedAt)

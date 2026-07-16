@@ -56,7 +56,14 @@ void printGPSFix() {
 }
 
 bool hasValidFix() {
-  return gpsParser.location.isValid();
+  // location.isValid() latches true forever after the first fix, so age
+  // must be checked or a lost fix keeps reporting frozen coordinates
+  return gpsParser.location.isValid()
+      && gpsParser.location.age() < GPS_FIX_MAX_AGE_MS
+      && gpsParser.satellites.isValid()
+      && gpsParser.satellites.value() >= GPS_MIN_SATELLITES
+      && gpsParser.hdop.isValid()
+      && gpsParser.hdop.hdop() <= GPS_MAX_HDOP;
 }
 
 float getSpeedKmh() {
@@ -86,22 +93,34 @@ String getISOTimestamp() {
   return String(buffer);
 }
 
-String buildPayload(float speedKmh) {
+String buildPayload(float speedKmh, bool hasFix, double lat, double lng) {
   char buffer[384];
   snprintf(
       buffer,
       sizeof(buffer),
       "{\"deviceId\":\"%s\",\"apiKey\":\"%s\",\"lat\":%.6f,\"lng\":%.6f,"
       "\"speedKmh\":%.1f,\"heading\":%.1f,\"satellites\":%d,\"hdop\":%.2f,"
-      "\"timestamp\":\"%s\"}",
+      "\"hasFix\":%s,\"timestamp\":\"%s\"}",
       DEVICE_ID,
       API_KEY,
-      gpsParser.location.lat(),
-      gpsParser.location.lng(),
+      lat,
+      lng,
       speedKmh,
       gpsParser.course.isValid() ? gpsParser.course.deg() : 0.0,
       gpsParser.satellites.isValid() ? static_cast<int>(gpsParser.satellites.value()) : 0,
       gpsParser.hdop.isValid() ? gpsParser.hdop.hdop() : 0.0,
+      hasFix ? "true" : "false",
       getISOTimestamp().c_str());
   return String(buffer);
+}
+
+String buildPayload(float speedKmh) {
+  return buildPayload(speedKmh, true, gpsParser.location.lat(), gpsParser.location.lng());
+}
+
+// Heartbeat sent while the GPS has no usable fix: last-known (possibly
+// stale) coordinates plus hasFix=false so the backend keeps "last seen"
+// fresh without recording a position
+String buildNoFixPayload() {
+  return buildPayload(0.0f, false, gpsParser.location.lat(), gpsParser.location.lng());
 }

@@ -137,6 +137,9 @@ export function vehicleStatusFromLive(position: LivePosition | null): VehicleSta
   if (ageMs > 10 * 60 * 1000) {
     return "NoSignal";
   }
+  if (position.hasFix === false) {
+    return "NoGps";
+  }
   if (position.speedKmh > 0 && ageMs <= 2 * 60 * 1000) {
     return "Moving";
   }

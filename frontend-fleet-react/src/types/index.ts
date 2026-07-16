@@ -1,4 +1,4 @@
-export type VehicleStatus = "Moving" | "Parked" | "NoSignal";
+export type VehicleStatus = "Moving" | "Parked" | "NoSignal" | "NoGps";
 
 export interface Position {
   id?: number;
@@ -8,6 +8,7 @@ export interface Position {
   heading: number;
   satellites: number;
   hdop: number;
+  hasFix?: boolean;
   recordedAt: string;
 }
 
@@ -51,6 +52,7 @@ export interface LivePosition {
   heading: number;
   satellites: number;
   hdop: number;
+  hasFix?: boolean;
   recordedAt: string;
 }
 

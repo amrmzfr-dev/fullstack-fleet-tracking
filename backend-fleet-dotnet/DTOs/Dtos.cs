@@ -10,6 +10,9 @@ public class TrackRequestDto
     public double Heading { get; set; }
     public int Satellites { get; set; }
     public double Hdop { get; set; }
+
+    // Older firmware omits this field, so it must default to true
+    public bool HasFix { get; set; } = true;
     public string Timestamp { get; set; } = string.Empty;
 }
 
@@ -29,7 +32,8 @@ public enum VehicleStatus
 {
     Moving,
     Parked,
-    NoSignal
+    NoSignal,
+    NoGps
 }
 
 public class PositionDto
@@ -41,6 +45,7 @@ public class PositionDto
     public double Heading { get; set; }
     public int Satellites { get; set; }
     public double Hdop { get; set; }
+    public bool HasFix { get; set; } = true;
     public DateTime RecordedAt { get; set; }
 }
 
@@ -104,5 +109,9 @@ public class LivePositionDto
     public double Heading { get; set; }
     public int Satellites { get; set; }
     public double Hdop { get; set; }
+
+    // Cached entries written before this field existed lack it — default
+    // to true so they deserialize as normal fixes
+    public bool HasFix { get; set; } = true;
     public DateTime RecordedAt { get; set; }
 }
